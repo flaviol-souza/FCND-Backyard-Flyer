@@ -60,7 +60,7 @@ class BackyardFlyer(Drone):
         This triggers when `MsgID.LOCAL_VELOCITY` is received and self.local_velocity contains new data
         """
         if self.flight_state == States.LANDING:
-            if self.global_position[2] - self.global_home[2] < 0.1 & abs(self.local_position[2]) < 0.01:
+            if self.global_position[2] - self.global_home[2] < 0.1 and abs(self.local_position[2]) < 0.1:
                 self.disarming_transition()
 
     def state_callback(self):
@@ -73,6 +73,8 @@ class BackyardFlyer(Drone):
             self.takeoff_transition()
         elif self.flight_state == States.DISARMING and ~self.armed & ~self.guided:
             self.manual_transition()
+        elif self.flight_state == States.MANUAL:
+            self.arming_transition()
 
     def calculate_box(self):
         """TODO: Fill out this method
@@ -80,10 +82,10 @@ class BackyardFlyer(Drone):
         1. Return waypoints to fly a box
         """
 
-        return [[10, 0, 3],
-                [10, 10, 3],
-                [0, 10, 3],
-                [0, 0, 3] ]
+        return [[10.0, 0.0, 3.0],
+                [10.0, 10.0, 3.0],
+                [0.0, 10.0, 3.0],
+                [0.0, 0.0, 3.0]]
 
     def arming_transition(self):
         """TODO: Fill out this method
@@ -178,8 +180,9 @@ if __name__ == "__main__":
     parser.add_argument('--host', type=str, default='127.0.0.1', help="host address, i.e. '127.0.0.1'")
     args = parser.parse_args()
 
-    conn = MavlinkConnection('tcp:{0}:{1}'.format(args.host, args.port), threaded=False, PX4=False)
+    #conn = MavlinkConnection('tcp:{0}:{1}'.format(args.host, args.port), threaded=False, PX4=False)
     #conn = WebSocketConnection('ws://{0}:{1}'.format(args.host, args.port))
+    conn = MavlinkConnection('tcp:127.0.0.1:5760', threaded=False, PX4=False)
     drone = BackyardFlyer(conn)
     time.sleep(2)
     drone.start()
