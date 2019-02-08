@@ -46,12 +46,12 @@ class BackyardFlyer(Drone):
                 self.all_waypoints = self.calculate_box()
                 self.waypoint_transition()
         elif self.flight_state == States.WAYPOINT:
-            if np.linalg.norm(self.target_position[0:2] - self.local_position[0:2]) < 1.0:
-                if len(self.all_waypoints) > 0:
-                    self.waypoint_transition()
-                else:
-                    if np.linalg.norm(self.local_velocity[0:2]) < 1.0:
+            if self.target_position[0] - self.local_position[0] < 1.0 and self.target_position[1] - self.local_position[1] < 1.0:
+                if len(self.all_waypoints) == 0:
+                    if self.local_position[0] < 1.0 and self.local_position[1] < 1.0:
                         self.landing_transition()
+                else:
+                    self.waypoint_transition()
 
     def velocity_callback(self):
         """
@@ -71,7 +71,7 @@ class BackyardFlyer(Drone):
         """
         if self.flight_state == States.ARMING and self.armed:
             self.takeoff_transition()
-        elif self.flight_state == States.DISARMING and ~self.armed & ~self.guided:
+        elif self.flight_state == States.DISARMING and ~self.armed and ~self.guided:
             self.manual_transition()
         elif self.flight_state == States.MANUAL:
             self.arming_transition()
@@ -81,8 +81,8 @@ class BackyardFlyer(Drone):
         
         1. Return waypoints to fly a box
         """
-
-        return [[10.0, 0.0, 3.0],
+        #waypoints copied on  the log of execution the solution branch
+        return [[10.0, 0.0, 3.0], 
                 [10.0, 10.0, 3.0],
                 [0.0, 10.0, 3.0],
                 [0.0, 0.0, 3.0]]
@@ -98,7 +98,8 @@ class BackyardFlyer(Drone):
         print("arming transition")
         self.take_control()
         self.arm()
-        self.set_home_position(self.global_position[0], self.global_position[1],
+        self.set_home_position(self.global_position[0], 
+                               self.global_position[1],
                                self.global_position[2])  
         self.flight_state = States.ARMING
 
@@ -120,8 +121,11 @@ class BackyardFlyer(Drone):
         2. Transition to WAYPOINT state
         """
         print("waypoint transition")
-        self.target_position = self.all_waypoints.pop(0)
-        self.cmd_position(self.target_position[0], self.target_position[1], self.target_position[2], 0.0)
+        self.target_position = self.all_waypoints.pop(0) #remote the last item and return the next
+        self.cmd_position(self.target_position[0], 
+                          self.target_position[1], 
+                          self.target_position[2], 
+                          0.0)
         self.flight_state = States.WAYPOINT
 
     def landing_transition(self):
@@ -180,9 +184,9 @@ if __name__ == "__main__":
     parser.add_argument('--host', type=str, default='127.0.0.1', help="host address, i.e. '127.0.0.1'")
     args = parser.parse_args()
 
-    #conn = MavlinkConnection('tcp:{0}:{1}'.format(args.host, args.port), threaded=False, PX4=False)
+    conn = MavlinkConnection('tcp:{0}:{1}'.format(args.host, args.port), threaded=False, PX4=False)
     #conn = WebSocketConnection('ws://{0}:{1}'.format(args.host, args.port))
-    conn = MavlinkConnection('tcp:127.0.0.1:5760', threaded=False, PX4=False)
+    
     drone = BackyardFlyer(conn)
     time.sleep(2)
     drone.start()
